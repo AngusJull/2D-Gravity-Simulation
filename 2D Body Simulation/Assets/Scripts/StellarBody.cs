@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class StellarBody : MonoBehaviour
 {
-    static public readonly float gravConstant = 3f;
+    static public readonly float gravConstant = 6f;
     //This is used by the tracking script on the main camera
     static public StellarBody trackedBody = null;
     static public bool tracking = false;
@@ -15,14 +15,15 @@ public class StellarBody : MonoBehaviour
     private SpriteRenderer sprite;
     //This object's velocityChanger
     private VelocityChanger velocityChanger;
-    private Rigidbody2D rb;
     private DragAndDrop dragAndDrop;
+    private Transform selectionCircle;
+    private SpriteRenderer selectionCircleSprite;
     private List<StellarBody> BodyList;
-    private Vector2 velocity;
     private float sizeScale = 0.5f;
     private bool paused = true;
-   
+
     //Public properties
+    public Vector2 velocity;
     public VelocityChanger velChangerPrefab;
     public float mass = 1;
     public float size = 1;
@@ -34,11 +35,11 @@ public class StellarBody : MonoBehaviour
         //Setting componenets
         sprite = GetComponent<SpriteRenderer>();
         dragAndDrop = GetComponent<DragAndDrop>();
-        rb = GetComponent<Rigidbody2D>();
+        selectionCircle = transform.GetChild(0);
+        selectionCircleSprite = selectionCircle.GetComponent<SpriteRenderer>();
         velocityChanger = null;
         //Giving this object a random color
         SetRandomColour();
-
         //Setting up events
         GameEvents.eventManager.Pause += GamePaused;
         GameEvents.eventManager.Play += GameUnpaused;
@@ -50,6 +51,7 @@ public class StellarBody : MonoBehaviour
             //Checks if this object or its children are the last chosen objects
             if (FamilyLastChosen())
             {
+                selectionCircleSprite.enabled = true;
                 //Checks if this already has a velocityChanger child
                 if (velocityChanger == null)
                 {
@@ -57,7 +59,7 @@ public class StellarBody : MonoBehaviour
                     velocityChanger.transform.rotation = transform.rotation;
                     Vector3 velocityOffset = velocity;
                     velocityOffset.z = velocityChanger.transform.localPosition.z;
-                    velocityChanger.transform.localPosition = velocityOffset;
+                    velocityChanger.transform.position = transform.position + velocityOffset;
                 }
                 //Checks if the user has chosen to try and track or untrack an object
                 if (Input.GetKeyDown("c"))
@@ -77,6 +79,7 @@ public class StellarBody : MonoBehaviour
             }
             else
             {
+                selectionCircleSprite.enabled = false;
                 if (velocityChanger)
                 {
                     Destroy(velocityChanger.gameObject);
@@ -91,6 +94,7 @@ public class StellarBody : MonoBehaviour
         }
         else
         {
+            
             //Checks if the user wants to untrack an object while the simulation is playing
             if (Input.GetKeyDown("c"))
             {
@@ -98,19 +102,6 @@ public class StellarBody : MonoBehaviour
                 trackedBody = null;
             }
         }
-    }
-    void FixedUpdate()
-    {
-        if (!paused)
-        {
-            //Calculates the force and then adds that force to the rigidbody
-            rb.AddForce(CalculateGravForces(true) * 100 * Time.fixedDeltaTime);
-        }
-        else
-        {
-            rb.velocity = Vector2.zero;
-        }
-        
     }
 
     ///Class specific methods
@@ -135,34 +126,30 @@ public class StellarBody : MonoBehaviour
     //Called whenever a body is created
     private void GamePaused(object sender, EventArgs e)
     {
-        //Checks if the game was already paused and will only store the objects current speed if it is not paused.
-        if (!paused)
-        {
-            //Checking if the object is paused ensures that the velocity variable will not store the objects speed when it is paused.
-            velocity = rb.velocity;
-        }
-        //Ceases the motion of the object.
-        rb.velocity = Vector2.zero;
-        //Making sure this object has a list of all other objects
+        //Making sure this object has a list of all other objects, since when the list is updated the game is automatically paused.
         BodyList = GetComponentInParent<BodyCreator>().GetBodies();
-        //Used in the update methods.
         paused = true;
     }
     private void GameUnpaused(object sender, EventArgs e)
     {
+        selectionCircleSprite.enabled = false;
         paused = false;
         if (velocityChanger)
         {
             Destroy(velocityChanger.gameObject);
             velocityChanger = null;
         }
-        //Gives the object back its previous velocity
-        rb.velocity = velocity;
     }
     //Updates the sprite's transform's size based on it's size property and the sizeScale property
     private void UpdateSpriteSize()
     {
         transform.localScale = new Vector3(sizeScale * size, sizeScale * size, sizeScale * size);
+    }
+    //Updates the selection circle's sprite to match the stellar body's sprite size plus a small amount
+    private void UpdateSelectionCircleSize()
+    {
+        float scale = 1.1f;
+        selectionCircle.localScale = new Vector3(scale, scale, scale);
     }
     //Gives the spriterenderer a random hue, with a set saturation and value
     private void SetRandomColour()
@@ -170,9 +157,12 @@ public class StellarBody : MonoBehaviour
         sprite.color = Color.HSVToRGB(UnityEngine.Random.Range(0f, 1f), 0.8f, 1.0f);
         _colour = sprite.color;
     }
+
+    ///Public Methods
+
     //Calculates the gravitational forces acting on this object, if nbody is true it will take into consideration all other stellar bodies,
     //Otherwise it will find the body which has the greatest effect and only return it's effect
-    private Vector2 CalculateGravForces(bool nbody = true)
+    public Vector2 CalculateGravForces(bool nbody = true)
     {
         if (BodyList.Count == 1)
         {
@@ -189,6 +179,12 @@ public class StellarBody : MonoBehaviour
                 //Checks if the next body in the list is this one
                 if (BodyList[i] == this) { continue; }
                 forceVec = BodyList[i].transform.position - transform.position;
+                //Since the stellar bodies can pass through one another, this limits how close their masses can get
+                if (forceVec.sqrMagnitude < 0.01f) 
+                { 
+                    forceVec.Normalize(); 
+                    forceVec *= 0.1f; 
+                }
                 //Newtons universal law of gravitation
                 force = BodyList[i].mass * mass * gravConstant / forceVec.sqrMagnitude;
                 forceVec.Normalize();
@@ -220,20 +216,12 @@ public class StellarBody : MonoBehaviour
             return forceVec;
         }
     }
-
-    ///Public Methods
-    
-    //Returns this objects rigidbody velocity
-    public Vector2 GetRigidbodyVelocity()
-    {
-        return rb.velocity;
-    }
     //Called by the BodyCreator on instancing this object, sets the mass and size properties as well as the rigidbody's mass property
     public void SetProperties(float _mass, float _size)
     {
         mass = _mass;
-        rb.mass = _mass;
         size = _size;
         UpdateSpriteSize();
+        UpdateSelectionCircleSize();
     }
 }

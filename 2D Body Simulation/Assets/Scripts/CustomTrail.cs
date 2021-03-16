@@ -31,7 +31,6 @@ public class CustomTrail : MonoBehaviour
         gradient.colorKeys = colourKey;
         gradient.alphaKeys = alphaKey;
         trail.colorGradient = gradient;
-
         trail.emitting = true;
     }
     private void UpdateColourKeys()

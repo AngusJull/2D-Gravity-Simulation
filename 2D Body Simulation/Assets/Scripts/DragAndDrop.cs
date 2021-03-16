@@ -20,7 +20,6 @@ public class DragAndDrop : MonoBehaviour
         GameEvents.eventManager.Pause += GamePaused;
         GameEvents.eventManager.Play += GameUnpaused;
     }
-
     void Update()
     {
         if (paused)

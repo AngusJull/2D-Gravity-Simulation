@@ -40,7 +40,7 @@ public class VelocityChanger : MonoBehaviour
     void FixedUpdate()
     {
         //Vector points from this obj to parent
-        velocityVec = transform.localPosition;
+        velocityVec = transform.position - transform.parent.position;
         velocityVec.z = 0;
         //Sets the rotation of the changer to be in the same direction as the vector
         transform.right = velocityVec.normalized;

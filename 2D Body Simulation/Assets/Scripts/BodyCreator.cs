@@ -9,6 +9,7 @@ public class BodyCreator : MonoBehaviour
     public StellarBody BodyPrefab;
     //A list of the stellar bodies this script has initialized
     private List<StellarBody> BodyList = new List<StellarBody>();
+    public List<StellarBody> GetBodies() { return BodyList; }
 
     public void AdjustSize(float _size)
     {
@@ -18,7 +19,7 @@ public class BodyCreator : MonoBehaviour
     public void BodyRequested()
     { 
         StellarBody current = Instantiate(BodyPrefab, transform);
-        current.SetProperties(size * size, (size / 2));
+        current.SetProperties(size * size,  (size / 2));
         //Stops objects from being spawned perfectly inside eachother
         Vector3 randomOffset = UnityEngine.Random.insideUnitCircle;
         //When the camera is tracking an object, this ensures the object is created in the center of the screen
@@ -31,6 +32,6 @@ public class BodyCreator : MonoBehaviour
 
         GameEvents.eventManager.OnPause(new EventArgs());
     }
-    public List<StellarBody> GetBodies() { return BodyList; }
+    
     
 }
