@@ -24,6 +24,7 @@ public class StellarBody : MonoBehaviour
 
     //Public properties
     public Vector2 velocity;
+    public bool pinned = false;
     public VelocityChanger velChangerPrefab;
     public float mass = 1;
     public float size = 1;

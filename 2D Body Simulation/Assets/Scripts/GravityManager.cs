@@ -41,6 +41,10 @@ public class GravityManager : MonoBehaviour
         foreach (StellarBody current in BodyList)
         {
             //Timescale changes how quickly the velocity will change.
+            if (current.pinned)
+            {
+                current.velocity = Vector2.zero;
+            }
             current.velocity += (current.CalculateGravForces(true) / current.mass) * Time.deltaTime * timescale;
         }
         return;
@@ -49,6 +53,10 @@ public class GravityManager : MonoBehaviour
     {
         foreach (StellarBody current in BodyList)
         {
+            if (current.pinned)
+            {
+                continue;
+            }
             Vector3 v = current.velocity;
             current.transform.position += v * Time.deltaTime * timescale;
         }
